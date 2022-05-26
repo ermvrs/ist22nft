@@ -1277,10 +1277,10 @@ library MerkleProof {
 
 
 pragma solidity >= 0.8.0;
-contract IST22 is ERC721Enumerable {
+contract SimpleNFT is ERC721Enumerable {
 
     string public poapUri;
-    uint256 public maxTokens = 1000;
+    uint256 public maxTokens;
     address public operator;
     bytes32 public eligibles;
 
