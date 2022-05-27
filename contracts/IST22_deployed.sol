@@ -1,6 +1,4 @@
-/**
- *Submitted for verification at polygonscan.com on 2022-05-27
-*/
+// SPDX-License-Identifier: MIT
 
 // File: @openzeppelin\contracts\utils\introspection\IERC165.sol
 

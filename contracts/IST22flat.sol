@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 // File: @openzeppelin\contracts\utils\introspection\IERC165.sol
 
 // OpenZeppelin Contracts v4.4.1 (utils/introspection/IERC165.sol)
