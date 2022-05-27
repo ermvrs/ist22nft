@@ -1,8 +1,6 @@
-// SPDX-License-Identifier: MIT
 // File: @openzeppelin\contracts\utils\introspection\IERC165.sol
 
 // OpenZeppelin Contracts v4.4.1 (utils/introspection/IERC165.sol)
-
 
 pragma solidity ^0.8.0;
 
@@ -28,6 +26,7 @@ interface IERC165 {
 }
 
 // File: @openzeppelin\contracts\token\ERC721\IERC721.sol
+
 
 // OpenZeppelin Contracts (last updated v4.6.0) (token/ERC721/IERC721.sol)
 
@@ -172,7 +171,6 @@ interface IERC721 is IERC165 {
 
 // File: @openzeppelin\contracts\token\ERC721\IERC721Receiver.sol
 
-
 // OpenZeppelin Contracts (last updated v4.6.0) (token/ERC721/IERC721Receiver.sol)
 
 pragma solidity ^0.8.0;
@@ -201,6 +199,7 @@ interface IERC721Receiver {
 }
 
 // File: @openzeppelin\contracts\token\ERC721\extensions\IERC721Metadata.sol
+
 
 // OpenZeppelin Contracts v4.4.1 (token/ERC721/extensions/IERC721Metadata.sol)
 
@@ -580,6 +579,12 @@ abstract contract ERC165 is IERC165 {
 // OpenZeppelin Contracts (last updated v4.6.0) (token/ERC721/ERC721.sol)
 
 pragma solidity ^0.8.0;
+
+
+
+
+
+
 
 /**
  * @dev Implementation of https://eips.ethereum.org/EIPS/eip-721[ERC721] Non-Fungible Token Standard, including
@@ -1275,37 +1280,33 @@ library MerkleProof {
     }
 }
 
+// File: contracts\IST22.sol
 
 pragma solidity >= 0.8.0;
 contract IST22 is ERC721Enumerable {
 
     string public poapUri;
-    uint256 public maxTokens = 1000;
     address public operator;
-    bytes32 public eligibles;
+    uint256 public mintingDuration = 48 hours;
+
+    uint256 public startTime;
+    uint256 public endTime;
 
     mapping(address => bool) public minters;
 
-    constructor(string memory _name, string memory _symbol) ERC721(_name, _symbol) {
+    constructor(string memory _name, string memory _symbol, string memory _poapUri) ERC721(_name, _symbol) {
         operator = msg.sender;
+        startTime = block.timestamp;
+        endTime = block.timestamp + mintingDuration;
+        poapUri = _poapUri;
     }
 
-    function setPoapUri(string memory _uri) public {
-        require(msg.sender == operator, "only operator");
-        poapUri = _uri;
-    }
-
-    function mint(bytes32[] calldata _proof) public {
-        // only eligibles can mint
-        bool isEligible = verifyEligible(_proof, msg.sender);
-        require(isEligible, "Not eligible for mint");
-
+    function mint() public {
+        
         bool alreadyMinted = minters[msg.sender];
         require(!alreadyMinted, "Already minted");
 
-        uint mintIndex = totalSupply() + 1;
-
-        require(mintIndex < maxTokens, "All tokens minted");
+        uint mintIndex = totalSupply();
 
         _safeMint(msg.sender, mintIndex);
 
@@ -1315,17 +1316,6 @@ contract IST22 is ERC721Enumerable {
     //empty parameter for override
     function tokenURI(uint256 _tokenId) public view override returns(string memory) {
         return poapUri;
-    }
-
-    function setEligibleHash(bytes32 _root) public {
-        require(msg.sender == operator, "only operator");
-        eligibles = _root;
-    }
-
-    function verifyEligible(bytes32[] calldata _proof, address _user) internal view returns(bool) {
-        bytes32 leaf = keccak256(abi.encodePacked(_user));
-
-        return MerkleProof.verify(_proof, eligibles, leaf);
     }
 
 }
