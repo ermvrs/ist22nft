@@ -1280,32 +1280,27 @@ pragma solidity >= 0.8.0;
 contract SimpleNFT is ERC721Enumerable {
 
     string public poapUri;
-    uint256 public maxTokens;
     address public operator;
-    bytes32 public eligibles;
+    uint256 public mintingDuration = 48 hours;
+
+    uint256 public startTime;
+    uint256 public endTime;
 
     mapping(address => bool) public minters;
 
-    constructor(string memory _name, string memory _symbol) ERC721(_name, _symbol) {
+    constructor(string memory _name, string memory _symbol, string memory _poapUri) ERC721(_name, _symbol) {
         operator = msg.sender;
+        startTime = block.timestamp;
+        endTime = block.timestamp + mintingDuration;
+        poapUri = _poapUri;
     }
 
-    function setPoapUri(string memory _uri) public {
-        require(msg.sender == operator, "only operator");
-        poapUri = _uri;
-    }
-
-    function mint(bytes32[] calldata _proof) public {
-        // only eligibles can mint
-        bool isEligible = verifyEligible(_proof, msg.sender);
-        require(isEligible, "Not eligible for mint");
-
+    function mint() public {
+        
         bool alreadyMinted = minters[msg.sender];
         require(!alreadyMinted, "Already minted");
 
-        uint mintIndex = totalSupply() + 1;
-
-        require(mintIndex < maxTokens, "All tokens minted");
+        uint mintIndex = totalSupply();
 
         _safeMint(msg.sender, mintIndex);
 
@@ -1315,17 +1310,6 @@ contract SimpleNFT is ERC721Enumerable {
     //empty parameter for override
     function tokenURI(uint256 _tokenId) public view override returns(string memory) {
         return poapUri;
-    }
-
-    function setEligibleHash(bytes32 _root) public {
-        require(msg.sender == operator, "only operator");
-        eligibles = _root;
-    }
-
-    function verifyEligible(bytes32[] calldata _proof, address _user) internal view returns(bool) {
-        bytes32 leaf = keccak256(abi.encodePacked(_user));
-
-        return MerkleProof.verify(_proof, eligibles, leaf);
     }
 
 }

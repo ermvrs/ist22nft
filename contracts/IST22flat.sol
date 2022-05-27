@@ -1,8 +1,6 @@
-// SPDX-License-Identifier: MIT
 // File: @openzeppelin\contracts\utils\introspection\IERC165.sol
 
 // OpenZeppelin Contracts v4.4.1 (utils/introspection/IERC165.sol)
-
 
 pragma solidity ^0.8.0;
 
@@ -28,6 +26,7 @@ interface IERC165 {
 }
 
 // File: @openzeppelin\contracts\token\ERC721\IERC721.sol
+
 
 // OpenZeppelin Contracts (last updated v4.6.0) (token/ERC721/IERC721.sol)
 
@@ -172,7 +171,6 @@ interface IERC721 is IERC165 {
 
 // File: @openzeppelin\contracts\token\ERC721\IERC721Receiver.sol
 
-
 // OpenZeppelin Contracts (last updated v4.6.0) (token/ERC721/IERC721Receiver.sol)
 
 pragma solidity ^0.8.0;
@@ -201,6 +199,7 @@ interface IERC721Receiver {
 }
 
 // File: @openzeppelin\contracts\token\ERC721\extensions\IERC721Metadata.sol
+
 
 // OpenZeppelin Contracts v4.4.1 (token/ERC721/extensions/IERC721Metadata.sol)
 
@@ -580,6 +579,12 @@ abstract contract ERC165 is IERC165 {
 // OpenZeppelin Contracts (last updated v4.6.0) (token/ERC721/ERC721.sol)
 
 pragma solidity ^0.8.0;
+
+
+
+
+
+
 
 /**
  * @dev Implementation of https://eips.ethereum.org/EIPS/eip-721[ERC721] Non-Fungible Token Standard, including
@@ -1208,104 +1213,35 @@ abstract contract ERC721Enumerable is ERC721, IERC721Enumerable {
     }
 }
 
-// File: @openzeppelin\contracts\utils\cryptography\MerkleProof.sol
-
-// OpenZeppelin Contracts (last updated v4.6.0) (utils/cryptography/MerkleProof.sol)
-
-pragma solidity ^0.8.0;
-
-/**
- * @dev These functions deal with verification of Merkle Trees proofs.
- *
- * The proofs can be generated using the JavaScript library
- * https://github.com/miguelmota/merkletreejs[merkletreejs].
- * Note: the hashing algorithm should be keccak256 and pair sorting should be enabled.
- *
- * See `test/utils/cryptography/MerkleProof.test.js` for some examples.
- *
- * WARNING: You should avoid using leaf values that are 64 bytes long prior to
- * hashing, or use a hash function other than keccak256 for hashing leaves.
- * This is because the concatenation of a sorted pair of internal nodes in
- * the merkle tree could be reinterpreted as a leaf value.
- */
-library MerkleProof {
-    /**
-     * @dev Returns true if a `leaf` can be proved to be a part of a Merkle tree
-     * defined by `root`. For this, a `proof` must be provided, containing
-     * sibling hashes on the branch from the leaf to the root of the tree. Each
-     * pair of leaves and each pair of pre-images are assumed to be sorted.
-     */
-    function verify(
-        bytes32[] memory proof,
-        bytes32 root,
-        bytes32 leaf
-    ) internal pure returns (bool) {
-        return processProof(proof, leaf) == root;
-    }
-
-    /**
-     * @dev Returns the rebuilt hash obtained by traversing a Merkle tree up
-     * from `leaf` using `proof`. A `proof` is valid if and only if the rebuilt
-     * hash matches the root of the tree. When processing the proof, the pairs
-     * of leafs & pre-images are assumed to be sorted.
-     *
-     * _Available since v4.4._
-     */
-    function processProof(bytes32[] memory proof, bytes32 leaf) internal pure returns (bytes32) {
-        bytes32 computedHash = leaf;
-        for (uint256 i = 0; i < proof.length; i++) {
-            bytes32 proofElement = proof[i];
-            if (computedHash <= proofElement) {
-                // Hash(current computed hash + current element of the proof)
-                computedHash = _efficientHash(computedHash, proofElement);
-            } else {
-                // Hash(current element of the proof + current computed hash)
-                computedHash = _efficientHash(proofElement, computedHash);
-            }
-        }
-        return computedHash;
-    }
-
-    function _efficientHash(bytes32 a, bytes32 b) private pure returns (bytes32 value) {
-        assembly {
-            mstore(0x00, a)
-            mstore(0x20, b)
-            value := keccak256(0x00, 0x40)
-        }
-    }
-}
-
+// File: contracts\IST22.sol
 
 pragma solidity >= 0.8.0;
 contract IST22 is ERC721Enumerable {
 
     string public poapUri;
-    uint256 public maxTokens = 1000;
     address public operator;
-    bytes32 public eligibles;
+    uint256 public mintingDuration = 48 hours;
+
+    uint256 public startTime;
+    uint256 public endTime;
 
     mapping(address => bool) public minters;
 
-    constructor(string memory _name, string memory _symbol) ERC721(_name, _symbol) {
+    constructor(string memory _name, string memory _symbol, string memory _poapUri) ERC721(_name, _symbol) {
         operator = msg.sender;
+        startTime = block.timestamp;
+        endTime = block.timestamp + mintingDuration;
+        poapUri = _poapUri;
     }
 
-    function setPoapUri(string memory _uri) public {
-        require(msg.sender == operator, "only operator");
-        poapUri = _uri;
-    }
-
-    function mint(bytes32[] calldata _proof) public {
-        // only eligibles can mint
-        bool isEligible = verifyEligible(_proof, msg.sender);
-        require(isEligible, "Not eligible for mint");
+    function mint() public {
+        require(block.timestamp >= startTime, "Minting not started");
+        require(block.timestamp <= endTime, "Minting ended");
 
         bool alreadyMinted = minters[msg.sender];
         require(!alreadyMinted, "Already minted");
 
-        uint mintIndex = totalSupply() + 1;
-
-        require(mintIndex < maxTokens, "All tokens minted");
+        uint mintIndex = totalSupply();
 
         _safeMint(msg.sender, mintIndex);
 
@@ -1315,17 +1251,6 @@ contract IST22 is ERC721Enumerable {
     //empty parameter for override
     function tokenURI(uint256 _tokenId) public view override returns(string memory) {
         return poapUri;
-    }
-
-    function setEligibleHash(bytes32 _root) public {
-        require(msg.sender == operator, "only operator");
-        eligibles = _root;
-    }
-
-    function verifyEligible(bytes32[] calldata _proof, address _user) internal view returns(bool) {
-        bytes32 leaf = keccak256(abi.encodePacked(_user));
-
-        return MerkleProof.verify(_proof, eligibles, leaf);
     }
 
 }
